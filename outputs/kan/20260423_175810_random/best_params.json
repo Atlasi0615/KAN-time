@@ -1,0 +1,21 @@
+{
+  "trial_id": 1,
+  "hidden_dims": [
+    8,
+    4
+  ],
+  "grid": 3,
+  "k": 3,
+  "adam_steps": 500,
+  "adam_lr": 0.001,
+  "lbfgs_steps": 60,
+  "lamb": 1e-05,
+  "lamb_entropy": 0.0,
+  "rmse_log": 0.12150121783673451,
+  "mae_log": 0.09097117930650711,
+  "r2_log": 0.9847623109817505,
+  "rmse_raw": 0.02963945346128529,
+  "mae_raw": 0.016919784247875214,
+  "median_relative_error": 0.07075388729572296,
+  "mean_relative_error": 0.0913960263133049
+}

@@ -1,0 +1,19 @@
+{
+  "trial_id": 1,
+  "hidden_dims": [
+    128,
+    64
+  ],
+  "activation": "relu",
+  "dropout": 0.0,
+  "lr": 0.001,
+  "weight_decay": 1e-05,
+  "batch_size": 128,
+  "rmse_log": 0.11140680042788946,
+  "mae_log": 0.0839957669377327,
+  "r2_log": 0.9871890544891357,
+  "rmse_raw": 0.028441173298540193,
+  "mae_raw": 0.01588415913283825,
+  "median_relative_error": 0.0675530955195427,
+  "mean_relative_error": 0.08447082340717316
+}

@@ -1,0 +1,15 @@
+DEFAULT_FEATURES = [
+    "BT",
+    "IP",
+    "NEL",
+    "PL",
+    "RGEO",
+    "EPSILON",
+    "KAPPA",
+    "DELTA",
+    "MEFF",
+]
+
+DEFAULT_TARGET = "TAUTH"
+DEFAULT_GROUP_COL = "TOK"
+DEFAULT_METADATA_COLS = ["TOK", "SHOT", "PHASE"]
