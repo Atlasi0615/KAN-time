@@ -1,0 +1,20 @@
+{
+  "trial_id": 13,
+  "hidden_dims": [
+    64,
+    32,
+    16
+  ],
+  "activation": "silu",
+  "dropout": 0.1,
+  "lr": 0.003,
+  "weight_decay": 1e-05,
+  "batch_size": 256,
+  "rmse_log": 0.3165099244927078,
+  "mae_log": 0.2649698853492737,
+  "r2_log": -2.6103947162628174,
+  "rmse_raw": 0.007740053418402176,
+  "mae_raw": 0.005927374120801687,
+  "median_relative_error": 0.24724455177783966,
+  "mean_relative_error": 0.31655099987983704
+}
