@@ -1,0 +1,19 @@
+{
+  "trial_id": 5,
+  "hidden_dims": [
+    128,
+    64
+  ],
+  "activation": "gelu",
+  "dropout": 0.1,
+  "lr": 0.001,
+  "weight_decay": 0.001,
+  "batch_size": 128,
+  "rmse_log": 0.16439788461432775,
+  "mae_log": 0.11906727403402328,
+  "r2_log": 0.6207574605941772,
+  "rmse_raw": 0.007517778282072789,
+  "mae_raw": 0.005905518773943186,
+  "median_relative_error": 0.08476810902357101,
+  "mean_relative_error": 0.12499327212572098
+}

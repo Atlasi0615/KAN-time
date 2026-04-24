@@ -1,0 +1,31 @@
+{
+  "run_dir": "outputs_final\\mlp\\20260423_205839_random",
+  "split_type": "random",
+  "features_analyzed": [
+    "IP",
+    "BT",
+    "PL",
+    "NEL",
+    "RGEO"
+  ],
+  "best_params": {
+    "trial_id": 11,
+    "hidden_dims": [
+      128,
+      64,
+      32
+    ],
+    "activation": "gelu",
+    "dropout": 0.0,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 256,
+    "rmse_log": 0.1162439467728155,
+    "mae_log": 0.08700317144393921,
+    "r2_log": 0.9860524535179138,
+    "rmse_raw": 0.027580545088915182,
+    "mae_raw": 0.015959955751895905,
+    "median_relative_error": 0.06787240505218506,
+    "mean_relative_error": 0.08774978667497635
+  }
+}

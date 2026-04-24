@@ -1,0 +1,80 @@
+
+project_name: tokamak_tauE_baselines_loto
+data_path: data/processed.csv
+output_root: outputs_loto
+seed: 42
+
+features:
+  - BT
+  - IP
+  - NEL
+  - PL
+  - RGEO
+  - EPSILON
+  - KAPPA
+  - DELTA
+  - MEFF
+
+target: TAUTH
+group_col: TOK
+metadata_cols:
+  - TOK
+  - SHOT
+  - PHASE
+
+split:
+  val_size: 0.10
+
+preprocessing:
+  log_inputs: true
+  log_target: true
+  scale_x_for_nn: true
+  scale_y_for_nn: true
+
+ols:
+  add_constant: true
+
+mlp:
+  max_trials: 12
+  search_space:
+    hidden_dims:
+      - [64, 32]
+      - [128, 64]
+      - [64, 32, 16]
+    activation: [silu, gelu]
+    dropout: [0.0, 0.05, 0.10]
+    lr: [0.0003, 0.001]
+    weight_decay: [0.0001, 0.001]
+    batch_size: [128, 256]
+  train:
+    max_epochs: 500
+    patience: 50
+    min_delta: 1.0e-5
+    scheduler_factor: 0.5
+    scheduler_patience: 15
+    min_lr: 1.0e-6
+    device: auto
+
+kan:
+  max_trials: 12
+  search_space:
+    hidden_dims:
+      - [8]
+      - [16]
+      - [32]
+      - [8, 4]
+      - [16, 8]
+    grid: [3, 5, 7]
+    k: [3, 5]
+    adam_steps: [500, 1000]
+    adam_lr: [0.0003, 0.001]
+    lbfgs_steps: [60, 120]
+    lamb: [0.0, 0.00001, 0.0001, 0.001]
+    lamb_entropy: [0.0, 1.0, 2.0]
+  fit:
+    update_grid: true
+    grid_update_num: 10
+    start_grid_update_step: -1
+    stop_grid_update_step: 50
+    batch: -1
+    device: cpu

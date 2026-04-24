@@ -1,0 +1,36 @@
+{
+  "config": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\configs\\final_baseline.yaml",
+  "session_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\overnight_runs\\20260423_205817",
+  "runs": [
+    {
+      "model": "ols",
+      "split": "random",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\ols\\20260423_205821_random"
+    },
+    {
+      "model": "ols",
+      "split": "group",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\ols\\20260423_205830_group"
+    },
+    {
+      "model": "mlp",
+      "split": "random",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\mlp\\20260423_205839_random"
+    },
+    {
+      "model": "mlp",
+      "split": "group",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\mlp\\20260423_210855_group"
+    },
+    {
+      "model": "kan",
+      "split": "random",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\kan\\20260423_210939_random"
+    },
+    {
+      "model": "kan",
+      "split": "group",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\kan\\20260423_213717_group"
+    }
+  ]
+}

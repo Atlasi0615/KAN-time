@@ -1,0 +1,29 @@
+{
+  "n_edge_before": 160,
+  "n_sum_before": "[16]",
+  "n_mult_before": "[0]",
+  "best_params": {
+    "trial_id": 4,
+    "hidden_dims": [
+      16
+    ],
+    "grid": 7,
+    "k": 5,
+    "adam_steps": 1000,
+    "adam_lr": 0.0003,
+    "lbfgs_steps": 120,
+    "lamb": 0.001,
+    "lamb_entropy": 1.0,
+    "rmse_log": 0.11680711761905362,
+    "mae_log": 0.08538758009672165,
+    "r2_log": 0.9859169721603394,
+    "rmse_raw": 0.027858967879985045,
+    "mae_raw": 0.01631936989724636,
+    "median_relative_error": 0.06615017354488373,
+    "mean_relative_error": 0.08647289872169495
+  },
+  "n_edge_after_prune": 28,
+  "n_sum_after_prune": "[12]",
+  "n_mult_after_prune": "[0]",
+  "symbolic_formula_repr": "([-0.0125454177202613*log_BT + 0.0575091949871159*log_DELTA + 0.0741732899124666*log_EPSILON + 0.608486335722972*log_IP - 0.0809070447306029*log_KAPPA + 0.0259173147957217*log_MEFF + 0.345201171609612*log_RGEO + 0.24718165397644*sin(0.49673114352788*log_EPSILON - 6.74961925326529) + 0.759754132894641*sin(0.532559812068939*log_PL + 9.08600044250488) - 0.724970936775208*sin(2.23511246679945*log_RGEO - 4.14532398067598) - 0.772397702669069], [log_BT, log_IP, log_NEL, log_PL, log_RGEO, log_EPSILON, log_KAPPA, log_DELTA, log_MEFF])"
+}
