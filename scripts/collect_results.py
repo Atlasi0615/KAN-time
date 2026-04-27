@@ -42,7 +42,7 @@ def main():
 
     df = pd.DataFrame(rows)
     model_order = pd.CategoricalDtype(categories=["OLS", "MLP", "KAN"], ordered=True)
-    split_order = pd.CategoricalDtype(categories=["random", "group"], ordered=True)
+    split_order = pd.CategoricalDtype(categories=["random", "extrap_jet", "group"], ordered=True)
     df["model"] = df["model"].astype(model_order)
     df["split"] = df["split"].astype(split_order)
     df = df.sort_values(["split", "model"]).reset_index(drop=True)

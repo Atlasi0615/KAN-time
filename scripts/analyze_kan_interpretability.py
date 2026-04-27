@@ -21,14 +21,14 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from tokamak_tauE_baselines.data import load_dataframe
-from tokamak_tauE_baselines.splits import build_split
+from tokamak_tauE_baselines.splits import build_split, refit_train_val_split
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", type=str, required=True)
     parser.add_argument("--config", type=str, default="configs/final_baseline.yaml")
-    parser.add_argument("--split-type", type=str, choices=["random", "group"], default=None)
+    parser.add_argument("--split-type", type=str, choices=["random", "group", "extrap_jet"], default=None)
     parser.add_argument("--features", nargs="*", default=None)
     parser.add_argument("--grid-points", type=int, default=200)
     parser.add_argument("--sample-points", type=int, default=1500)
@@ -45,6 +45,8 @@ def load_yaml(path: Path) -> Dict:
 
 def infer_split_type(run_dir: Path) -> str:
     name = run_dir.name.lower()
+    if name.endswith("extrap_jet"):
+        return "extrap_jet"
     if name.endswith("group"):
         return "group"
     if name.endswith("random"):
@@ -53,22 +55,16 @@ def infer_split_type(run_dir: Path) -> str:
 
 
 def refit_split(train_val_df: pd.DataFrame, split_type: str, group_col: str, seed: int):
-    if split_type == "random":
-        train_df, val_df = train_test_split(train_val_df, test_size=0.10, random_state=seed, shuffle=True)
-    else:
-        gss = GroupShuffleSplit(n_splits=1, test_size=0.10, random_state=seed)
-        groups = train_val_df[group_col].values
-        train_idx, val_idx = next(gss.split(train_val_df, groups=groups))
-        train_df = train_val_df.iloc[train_idx]
-        val_df = train_val_df.iloc[val_idx]
-    return train_df.reset_index(drop=True), val_df.reset_index(drop=True)
+    del group_col
+    del seed
+    raise RuntimeError("refit_split should not be called directly; use refit_train_val_split.")
 
 
 def prepare_like_training(cfg: Dict, split_type: str):
     df = load_dataframe(csv_path=ROOT / cfg["data_path"], features=cfg["features"], target=cfg["target"], metadata_cols=cfg["metadata_cols"])
-    split_frames = build_split(df=df, split_type=split_type, group_col=cfg["group_col"], test_size=float(cfg["split"]["test_size"]), val_size=float(cfg["split"]["val_size"]), seed=int(cfg["seed"]))
+    split_frames = build_split(df=df, split_type=split_type, group_col=cfg["group_col"], target_col=cfg["target"], test_size=float(cfg["split"]["test_size"]), val_size=float(cfg["split"]["val_size"]), seed=int(cfg["seed"]))
     train_val_df = pd.concat([split_frames.train_df, split_frames.val_df], axis=0).reset_index(drop=True)
-    refit_train_df, refit_val_df = refit_split(train_val_df, split_type, cfg["group_col"], int(cfg["seed"]))
+    refit_train_df, refit_val_df = refit_train_val_split(train_val_df, split_type, cfg["group_col"], cfg["target"], int(cfg["seed"]))
     test_df = split_frames.test_df.reset_index(drop=True)
     features = cfg["features"]
     target = cfg["target"]

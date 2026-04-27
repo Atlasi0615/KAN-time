@@ -16,6 +16,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/final_baseline.yaml")
     parser.add_argument("--python", type=str, default=sys.executable)
+    parser.add_argument("--split-suite", type=str, choices=["primary", "legacy", "all"], default="primary")
     parser.add_argument("--skip-plots", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -61,14 +62,20 @@ def main():
     session_dir.mkdir(parents=True, exist_ok=True)
     log_path = session_dir / "overnight.log"
 
-    jobs = [
-        ("ols", "random", [args.python, "scripts/run_ols.py", "--config", args.config, "--split-type", "random"]),
-        ("ols", "group",  [args.python, "scripts/run_ols.py", "--config", args.config, "--split-type", "group"]),
-        ("mlp", "random", [args.python, "scripts/tune_mlp.py", "--config", args.config, "--split-type", "random"]),
-        ("mlp", "group",  [args.python, "scripts/tune_mlp.py", "--config", args.config, "--split-type", "group"]),
-        ("kan", "random", [args.python, "scripts/tune_kan.py", "--config", args.config, "--split-type", "random"]),
-        ("kan", "group",  [args.python, "scripts/tune_kan.py", "--config", args.config, "--split-type", "group"]),
-    ]
+    split_suites = {
+        "primary": ["extrap_jet", "group"],
+        "legacy": ["random", "group"],
+        "all": ["random", "extrap_jet", "group"],
+    }
+    jobs = []
+    for split in split_suites[args.split_suite]:
+        jobs.extend(
+            [
+                ("ols", split, [args.python, "scripts/run_ols.py", "--config", args.config, "--split-type", split]),
+                ("mlp", split, [args.python, "scripts/tune_mlp.py", "--config", args.config, "--split-type", split]),
+                ("kan", split, [args.python, "scripts/tune_kan.py", "--config", args.config, "--split-type", split]),
+            ]
+        )
 
     if args.dry_run:
         print("Session dir:", session_dir)

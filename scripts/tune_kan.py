@@ -18,13 +18,13 @@ from tokamak_tauE_baselines.metrics import regression_metrics_from_log
 from tokamak_tauE_baselines.models.kan_wrapper import predict_kan, train_kan, try_save_kan_state
 from tokamak_tauE_baselines.search import sample_trials
 from tokamak_tauE_baselines.seed import set_seed
-from tokamak_tauE_baselines.splits import SplitFrames, build_split
+from tokamak_tauE_baselines.splits import SplitFrames, build_split, refit_train_val_split
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/base.yaml")
-    parser.add_argument("--split-type", type=str, choices=["random", "group"], default="random")
+    parser.add_argument("--split-type", type=str, choices=["random", "group", "extrap_jet"], default="random")
     return parser.parse_args()
 
 
@@ -32,23 +32,16 @@ def refit_split(
     train_val_df: pd.DataFrame,
     split_type: str,
     group_col: str,
+    target_col: str,
     seed: int,
 ) -> SplitFrames:
-    if split_type == "random":
-        from sklearn.model_selection import train_test_split
-        train_df, val_df = train_test_split(
-            train_val_df,
-            test_size=0.10,
-            random_state=seed,
-            shuffle=True,
-        )
-    else:
-        from sklearn.model_selection import GroupShuffleSplit
-        gss = GroupShuffleSplit(n_splits=1, test_size=0.10, random_state=seed)
-        groups = train_val_df[group_col].values
-        train_idx, val_idx = next(gss.split(train_val_df, groups=groups))
-        train_df = train_val_df.iloc[train_idx]
-        val_df = train_val_df.iloc[val_idx]
+    train_df, val_df = refit_train_val_split(
+        train_val_df=train_val_df,
+        split_type=split_type,
+        group_col=group_col,
+        target_col=target_col,
+        seed=seed,
+    )
     return SplitFrames(
         train_df=train_df.reset_index(drop=True),
         val_df=val_df.reset_index(drop=True),
@@ -71,6 +64,7 @@ def main() -> None:
         df=df,
         split_type=args.split_type,
         group_col=cfg["group_col"],
+        target_col=cfg["target"],
         test_size=float(cfg["split"]["test_size"]),
         val_size=float(cfg["split"]["val_size"]),
         seed=int(cfg["seed"]),
@@ -143,6 +137,7 @@ def main() -> None:
         train_val_df=train_val_df,
         split_type=args.split_type,
         group_col=cfg["group_col"],
+        target_col=cfg["target"],
         seed=int(cfg["seed"]),
     )
     refit_prepared = prepare_data(

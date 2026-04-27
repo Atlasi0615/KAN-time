@@ -11,7 +11,6 @@ import pandas as pd
 import sympy as sp
 import torch
 import yaml
-from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,14 +19,15 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from tokamak_tauE_baselines.data import load_dataframe
-from tokamak_tauE_baselines.splits import build_split
+from tokamak_tauE_baselines.metrics import regression_metrics_from_log
+from tokamak_tauE_baselines.splits import build_split, refit_train_val_split
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", type=str, required=True)
     parser.add_argument("--config", type=str, default="configs/final_baseline.yaml")
-    parser.add_argument("--split-type", type=str, choices=["random", "group"], default=None)
+    parser.add_argument("--split-type", type=str, choices=["random", "group", "extrap_jet"], default=None)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--sparsify-steps", type=int, default=40)
     parser.add_argument("--sparsify-lamb", type=float, default=1e-3)
@@ -43,6 +43,8 @@ def load_yaml(path: Path) -> Dict:
 
 def infer_split_type(run_dir: Path) -> str:
     name = run_dir.name.lower()
+    if name.endswith("extrap_jet"):
+        return "extrap_jet"
     if name.endswith("group"):
         return "group"
     if name.endswith("random"):
@@ -50,27 +52,32 @@ def infer_split_type(run_dir: Path) -> str:
     raise ValueError("Cannot infer split type; pass --split-type.")
 
 
-def refit_split(train_val_df: pd.DataFrame, split_type: str, group_col: str, seed: int):
-    if split_type == "random":
-        train_df, val_df = train_test_split(train_val_df, test_size=0.10, random_state=seed, shuffle=True)
-    else:
-        gss = GroupShuffleSplit(n_splits=1, test_size=0.10, random_state=seed)
-        groups = train_val_df[group_col].values
-        train_idx, val_idx = next(gss.split(train_val_df, groups=groups))
-        train_df = train_val_df.iloc[train_idx]
-        val_df = train_val_df.iloc[val_idx]
-    return train_df.reset_index(drop=True), val_df.reset_index(drop=True)
-
-
 def prepare_like_training(cfg: Dict, split_type: str):
     df = load_dataframe(csv_path=ROOT / cfg["data_path"], features=cfg["features"], target=cfg["target"], metadata_cols=cfg["metadata_cols"])
-    split_frames = build_split(df=df, split_type=split_type, group_col=cfg["group_col"], test_size=float(cfg["split"]["test_size"]), val_size=float(cfg["split"]["val_size"]), seed=int(cfg["seed"]))
+    split_frames = build_split(
+        df=df,
+        split_type=split_type,
+        group_col=cfg["group_col"],
+        target_col=cfg["target"],
+        test_size=float(cfg["split"]["test_size"]),
+        val_size=float(cfg["split"]["val_size"]),
+        seed=int(cfg["seed"]),
+    )
     train_val_df = pd.concat([split_frames.train_df, split_frames.val_df], axis=0).reset_index(drop=True)
-    train_df, val_df = refit_split(train_val_df, split_type, cfg["group_col"], int(cfg["seed"]))
+    train_df, val_df = refit_train_val_split(
+        train_val_df=train_val_df,
+        split_type=split_type,
+        group_col=cfg["group_col"],
+        target_col=cfg["target"],
+        seed=int(cfg["seed"]),
+    )
     X_train_log = np.log(train_df[cfg["features"]].astype(float).to_numpy())
     y_train_log = np.log(train_df[cfg["target"]].astype(float).to_numpy()).reshape(-1, 1)
     X_val_log = np.log(val_df[cfg["features"]].astype(float).to_numpy())
     y_val_log = np.log(val_df[cfg["target"]].astype(float).to_numpy()).reshape(-1, 1)
+    holdout_test_df = split_frames.test_df.reset_index(drop=True)
+    X_holdout_log = np.log(holdout_test_df[cfg["features"]].astype(float).to_numpy())
+    y_holdout_log = np.log(holdout_test_df[cfg["target"]].astype(float).to_numpy()).reshape(-1, 1)
     x_scaler = StandardScaler().fit(X_train_log)
     y_scaler = StandardScaler().fit(y_train_log)
     return {
@@ -78,8 +85,12 @@ def prepare_like_training(cfg: Dict, split_type: str):
         "target": cfg["target"],
         "train_input": torch.tensor(x_scaler.transform(X_train_log), dtype=torch.float32),
         "train_label": torch.tensor(y_scaler.transform(y_train_log), dtype=torch.float32),
-        "test_input": torch.tensor(x_scaler.transform(X_val_log), dtype=torch.float32),
-        "test_label": torch.tensor(y_scaler.transform(y_val_log), dtype=torch.float32),
+        "refit_val_input": torch.tensor(x_scaler.transform(X_val_log), dtype=torch.float32),
+        "refit_val_label": torch.tensor(y_scaler.transform(y_val_log), dtype=torch.float32),
+        "holdout_test_df": holdout_test_df,
+        "holdout_test_log": X_holdout_log,
+        "holdout_test_true_log": y_holdout_log[:, 0],
+        "holdout_test_scaled": x_scaler.transform(X_holdout_log),
         "x_scaler": x_scaler,
         "y_scaler": y_scaler,
     }
@@ -123,6 +134,47 @@ def safe_plot(model, folder: str, mask: bool = False, title: str | None = None, 
         return model.plot(folder=folder, in_vars=in_vars, out_vars=out_vars, title=title)
 
 
+def forward_scaled(model, x_scaled: np.ndarray, device: str) -> np.ndarray:
+    xt = torch.tensor(x_scaled, dtype=torch.float32, device=device)
+    with torch.no_grad():
+        out = model(xt)
+        if isinstance(out, tuple):
+            out = out[0]
+        out = out.detach().cpu().numpy()
+    out = np.asarray(out)
+    if out.ndim == 2 and out.shape[1] == 1:
+        out = out[:, 0]
+    return out.reshape(-1)
+
+
+def predict_log_tau(model, x_scaled: np.ndarray, y_scaler: StandardScaler, device: str) -> np.ndarray:
+    y_scaled = forward_scaled(model, x_scaled, device=device).reshape(-1, 1)
+    return y_scaler.inverse_transform(y_scaled)[:, 0]
+
+
+def rmse(a: np.ndarray, b: np.ndarray) -> float:
+    a = np.asarray(a, dtype=float).reshape(-1)
+    b = np.asarray(b, dtype=float).reshape(-1)
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+
+def extract_symbolic_expression(formula_obj):
+    expr = formula_obj[0] if isinstance(formula_obj, tuple) else formula_obj
+    while isinstance(expr, (list, tuple)) and len(expr) == 1:
+        expr = expr[0]
+    return sp.sympify(expr)
+
+
+def evaluate_symbolic_expression(expr, symbols, values: np.ndarray) -> np.ndarray:
+    fn = sp.lambdify(symbols, expr, modules="numpy")
+    cols = [values[:, i] for i in range(values.shape[1])]
+    pred = fn(*cols)
+    pred = np.asarray(pred, dtype=float)
+    if pred.ndim == 0:
+        pred = np.full(values.shape[0], float(pred))
+    return pred.reshape(-1)
+
+
 def main():
     args = parse_args()
     run_dir = Path(args.run_dir)
@@ -148,8 +200,8 @@ def main():
     dataset = {
         "train_input": prep["train_input"].to(args.device),
         "train_label": prep["train_label"].to(args.device),
-        "test_input": prep["test_input"].to(args.device),
-        "test_label": prep["test_label"].to(args.device),
+        "test_input": prep["refit_val_input"].to(args.device),
+        "test_label": prep["refit_val_label"].to(args.device),
     }
 
     sparse_history = None
@@ -180,8 +232,63 @@ def main():
             pruned_for_mask.auto_symbolic(lib=lib)
             var = [sp.Symbol(f"log_{f}") for f in prep["features"]]
             formula = pruned_for_mask.symbolic_formula(var=var)
+            expr = extract_symbolic_expression(formula)
             summary["symbolic_formula_repr"] = str(formula)
             (out_dir / "symbolic_formula.txt").write_text(str(formula), encoding="utf-8")
+
+            y_true_log = prep["holdout_test_true_log"]
+            y_pred_log_numeric = predict_log_tau(model, prep["holdout_test_scaled"], prep["y_scaler"], device=args.device)
+            numeric_metrics = regression_metrics_from_log(y_true_log, y_pred_log_numeric)
+            summary["rmse_log_numeric_test"] = float(numeric_metrics["rmse_log"])
+
+            candidates = {}
+            for name, candidate_inputs in {
+                "raw_log": prep["holdout_test_log"],
+                "scaled_input": prep["holdout_test_scaled"],
+            }.items():
+                try:
+                    pred_symbolic = evaluate_symbolic_expression(expr, var, candidate_inputs)
+                    candidates[name] = {
+                        "rmse_log_symbolic": rmse(y_true_log, pred_symbolic),
+                        "rmse_log_symbolic_vs_numeric": rmse(y_pred_log_numeric, pred_symbolic),
+                        "predictions": pred_symbolic,
+                    }
+                except Exception as candidate_error:
+                    candidates[name] = {"error": str(candidate_error)}
+
+            summary["symbolic_candidate_metrics"] = {
+                name: {
+                    key: float(value)
+                    for key, value in metrics.items()
+                    if key != "predictions"
+                }
+                for name, metrics in candidates.items()
+                if "error" not in metrics
+            }
+            for name, metrics in candidates.items():
+                if "error" in metrics:
+                    summary.setdefault("symbolic_candidate_errors", {})[name] = metrics["error"]
+
+            valid_candidates = {name: metrics for name, metrics in candidates.items() if "predictions" in metrics}
+            if not valid_candidates:
+                raise RuntimeError("Failed to evaluate the symbolic expression in both raw_log and scaled_input spaces.")
+
+            chosen_name, chosen_metrics = min(
+                valid_candidates.items(),
+                key=lambda item: item[1]["rmse_log_symbolic_vs_numeric"],
+            )
+            summary["symbolic_input_space"] = chosen_name
+            summary["rmse_log_symbolic"] = float(chosen_metrics["rmse_log_symbolic"])
+            summary["rmse_log_symbolic_vs_numeric"] = float(chosen_metrics["rmse_log_symbolic_vs_numeric"])
+
+            audit_df = prep["holdout_test_df"][cfg["metadata_cols"]].copy()
+            audit_df["y_true_log"] = y_true_log
+            audit_df["y_pred_log_numeric"] = y_pred_log_numeric
+            audit_df["y_pred_log_symbolic"] = chosen_metrics["predictions"]
+            audit_df["abs_diff_symbolic_vs_numeric"] = np.abs(
+                audit_df["y_pred_log_symbolic"] - audit_df["y_pred_log_numeric"]
+            )
+            audit_df.to_csv(out_dir / "symbolic_test_audit.csv", index=False, encoding="utf-8-sig")
         except Exception as e:
             summary["symbolic_error"] = str(e)
 

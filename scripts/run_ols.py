@@ -23,7 +23,7 @@ from tokamak_tauE_baselines.splits import build_split
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/base.yaml")
-    parser.add_argument("--split-type", type=str, choices=["random", "group"], default="random")
+    parser.add_argument("--split-type", type=str, choices=["random", "group", "extrap_jet"], default="random")
     return parser.parse_args()
 
 
@@ -42,6 +42,7 @@ def main() -> None:
         df=df,
         split_type=args.split_type,
         group_col=cfg["group_col"],
+        target_col=cfg["target"],
         test_size=float(cfg["split"]["test_size"]),
         val_size=float(cfg["split"]["val_size"]),
         seed=int(cfg["seed"]),

@@ -1,0 +1,36 @@
+{
+  "config": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\configs\\final_baseline.yaml",
+  "session_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\overnight_runs\\20260427_095447",
+  "runs": [
+    {
+      "model": "ols",
+      "split": "extrap_jet",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\ols\\20260427_095451_extrap_jet"
+    },
+    {
+      "model": "mlp",
+      "split": "extrap_jet",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\mlp\\20260427_095500_extrap_jet"
+    },
+    {
+      "model": "kan",
+      "split": "extrap_jet",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\kan\\20260427_095724_extrap_jet"
+    },
+    {
+      "model": "ols",
+      "split": "group",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\ols\\20260427_103645_group"
+    },
+    {
+      "model": "mlp",
+      "split": "group",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\mlp\\20260427_103654_group"
+    },
+    {
+      "model": "kan",
+      "split": "group",
+      "run_dir": "D:\\tokamak_tauE_baselines\\tokamak_tauE_baselines\\outputs_final\\kan\\20260427_103802_group"
+    }
+  ]
+}

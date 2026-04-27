@@ -2,11 +2,15 @@
   "run_dir": "outputs_final\\mlp\\20260423_205839_random",
   "split_type": "random",
   "features_analyzed": [
-    "IP",
     "BT",
-    "PL",
+    "IP",
     "NEL",
-    "RGEO"
+    "PL",
+    "RGEO",
+    "EPSILON",
+    "KAPPA",
+    "DELTA",
+    "MEFF"
   ],
   "best_params": {
     "trial_id": 11,
